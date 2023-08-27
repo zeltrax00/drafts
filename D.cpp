@@ -1,13 +1,15 @@
 #include <bits/stdc++.h>
+
 using namespace std;
 
 const uint64_t MOD = 1e9 + 7;
+const uint64_t CHUNK = 100000000000;
 uint64_t N = 0, M = 0;
 uint64_t s = 0;
 uint64_t prevN = 0;
 uint64_t currentNumber = 0;
 uint64_t add = 0;
-
+uint64_t digit = 0;
 int t = 0;
 
 unordered_map<uint64_t, uint64_t> nextMonoMap;
@@ -16,7 +18,7 @@ unordered_map<uint64_t, uint64_t> nextMonoMap;
 uint64_t generateNextMonotone(uint64_t num) {
     int count = 0;
     while (true) {
-        uint64_t digit = num % 10;
+        digit = num % 10;
         if (digit == 9) {
             num /= 10;
             ++count;
@@ -64,66 +66,146 @@ uint64_t monotoneIncreasingDigits(uint64_t num) {
     return num;
 }
 
-void init()
+
+
+void input()
 {
-    uint64_t cu = 0, pr = 0;
-    while (cu < 1e19)
+    cin >> N >> M;
+}
+
+uint64_t solve(uint64_t a, uint64_t b)
+{
+    uint64_t res = 0;
+    currentNumber = monotoneIncreasingDigits(a);
+    if (a == b)
+        res = currentNumber % MOD;
+    prevN = currentNumber;
+
+    while (a < b)
     {
-        pr = cu;
-        cu = generateNextMonotone(cu);
-        nextMonoMap[pr] = cu;
+        currentNumber = generateNextMonotone(currentNumber);
+        //currentNumber = nextMonoMap[currentNumber];
+        if (currentNumber <= b)
+        {
+            add = ((prevN % MOD) * ((currentNumber - a) % MOD)) % MOD;
+            res = (res + add) % MOD;
+
+            if (currentNumber == b)
+                res = (res + (currentNumber % MOD)) % MOD;
+
+            prevN = a = currentNumber;
+        }
+        else
+        {
+            add = ((prevN % MOD) * ((b - a + 1) % MOD)) % MOD;
+            res = (res + add) % MOD;
+            prevN = a = currentNumber;
+        }
     }
 
+    return res;
+}
+
+void solve2()
+{
+    s = 0;
+
+    if (N == M)
+    {
+        s = monotoneIncreasingDigits(N) % MOD;
+    }
+    else if (M - N <= CHUNK)
+    {
+        s = solve(N, M);
+    }
+    else
+    {
+        if (M % CHUNK == 0)
+        {
+            if (N % CHUNK == 0)
+            {
+                s = monotoneIncreasingDigits(N) % MOD;
+                for (auto i = N + CHUNK; i <= M; i += CHUNK)
+                {
+                    s = (s + nextMonoMap[i]) % MOD;
+                }
+            }
+            else
+            {
+                uint64_t upper_N = N + (CHUNK - (N % CHUNK));
+
+                s = solve(N, upper_N);
+                for (auto i = upper_N + CHUNK; i <= M; i += CHUNK)
+                {
+                    s = (s + nextMonoMap[i]) % MOD;
+                }
+            }
+        }
+        else
+        {
+            if (N % CHUNK == 0)
+            {
+                uint64_t lower_M = M - (M % CHUNK);
+
+                s = solve(lower_M + 1, M);
+
+                s = (s + (monotoneIncreasingDigits(N) % MOD)) % MOD;
+                for (auto i = N + CHUNK; i <= lower_M; i += CHUNK)
+                {
+                    s = (s + nextMonoMap[i]) % MOD;
+                }
+            }
+            else
+            {
+                uint64_t upper_N = N + (CHUNK - (N % CHUNK));
+                uint64_t lower_M = M - (M % CHUNK);
+
+                s = solve(N, upper_N);
+                s = (s + solve(lower_M + 1, M))%MOD;
+
+                for (auto i = upper_N + CHUNK; i <= lower_M; i += CHUNK)
+                {
+                    s = (s + nextMonoMap[i]) % MOD;
+                }
+            }
+        }
+    }
+}
+
+void print()
+{
+    cout << s;
+    if (t > 0) cout << "\n";
+
+}
+void init()
+{
+    N = 1; M = CHUNK;
+    while (M <= 1e18)
+    {
+        nextMonoMap[M] = solve(N, M);
+        N = M + 1;
+        M += CHUNK;
+    }
 }
 
 static int dummy = (init(), 0);
-
-
 int main() {
     ios_base::sync_with_stdio(false);
     cin.tie(NULL);
     cout.tie(NULL);
 
-    //freopen("input.txt", "r", stdin);
-
+    system("pause");
     cin >> t;
 
     while (t--)
     {
-//        auto start = chrono::steady_clock::now();
-        s = 0;
-        cin >> N >> M;
-
-        currentNumber = monotoneIncreasingDigits(N);
-        if (N == M)
-            s = currentNumber % MOD;
-        prevN = currentNumber;
-
-        while (N < M)
-        {
-            //currentNumber = generateNextMonotone(currentNumber);
-            currentNumber = nextMonoMap[currentNumber];
-            if (currentNumber <= M)
-            {
-                add = ((prevN % MOD) * ((currentNumber - N) % MOD)) % MOD;
-                s = (s + add) % MOD;
-
-                if (currentNumber == M)
-                    s = (s + (currentNumber % MOD)) % MOD;
-
-                prevN = N = currentNumber;
-            }
-            else
-            {
-                add = ((prevN % MOD) * ((M - N + 1) % MOD)) % MOD;
-                s = (s + add) % MOD;
-                prevN = N = currentNumber;
-            }
-        }
-        cout << s;
-        if (t > 0) cout << "\n";
-
+        input();
+        solve2();
+        print();
     }
+
+
 
     return 0;
 }
